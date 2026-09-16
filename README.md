@@ -13,11 +13,33 @@ This fork is maintained under [monuminu/markdown-to-medium](https://github.com/m
 5. The extension should now appear in your Chrome toolbar
 
 ### For Users:
-1. Download `markdown-to-medium-v1.0.1.zip` from the [latest release](https://github.com/monuminu/markdown-to-medium/releases/latest)
+1. Download `markdown-to-medium-v1.0.2.zip` from the [latest release](https://github.com/monuminu/markdown-to-medium/releases/latest)
 2. Extract the files
 3. Open Chrome and go to `chrome://extensions/`
 4. Enable "Developer mode" in the top right corner
 5. Click "Load unpacked" and select the extracted folder
+
+## Updating an unpacked installation
+
+1. Download and extract the latest release ZIP.
+2. Replace the files in the extension folder you originally loaded, keeping the folder path unchanged.
+3. Open `chrome://extensions/` and click the extension's **Reload** button.
+4. Refresh your Medium draft before converting again, so Chrome loads the updated content scripts.
+5. To repair a previously converted table, remove the old table paragraphs, place the cursor in an empty paragraph, and convert a Markdown file containing only that table. Re-running the full article would duplicate its content.
+
+## Table formatting
+
+Tables are inserted as plain, editable ASCII text in a Medium code block, keeping columns aligned. The extension adds `+`, `-`, `=`, and `|` borders and wraps long cell values. It handles alignment markers, optional outside pipes, escaped pipes within cells, and copied tables with escaped opening pipes. No image upload or external table service is needed.
+
+```text
++---------+------+
+| Type    | User |
++=========+======+
+| Agent   | Yes  |
++---------+------+
+| Service | No   |
++---------+------+
+```
 
 ## Usage
 
@@ -47,7 +69,7 @@ This fork is maintained under [monuminu/markdown-to-medium](https://github.com/m
   - Blockquotes with `>` syntax
   - Code blocks with syntax highlighting support
   - Bullet lists (`*`, `-`, `+`) and numbered lists (`1.`, `2.`, etc.)
-  - Tables (converted to readable text format)
+  - Tables (bordered ASCII tables with wrapped cells in a monospace code block)
   - Images (converted to links with alt text)
   - Links with proper text extraction
   - Horizontal rules
@@ -92,7 +114,7 @@ The extension uses:
 
 - **Formatting Timing**: Content insertion happens sequentially with small delays to ensure proper Medium formatting
 - **Large Files**: Maximum file size is 5MB for optimal performance
-- **Complex Tables**: Tables are converted to readable text format rather than maintaining table structure
+- **Tables**: Markdown tables become editable ASCII grids inside a Medium code block. Long cells wrap to keep ordinary tables within 100 characters; very wide tables may require horizontal scrolling. Inline Markdown styling is removed inside cells.
 - **Nested Lists**: Currently supports single-level lists; deeply nested lists may not render perfectly
 - **Image Embedding**: Images are converted to links with alt text rather than embedded images
 - **Medium-Specific**: Designed specifically for Medium.com and may not work on other platforms
@@ -163,6 +185,10 @@ function hello() {
 - Check file size (must be under 5MB)
 - Ensure file extension is .md, .markdown, or .txt
 - Verify file isn't corrupted or contains unsupported characters
+
+## Tests
+
+With Node.js 18 or newer, run `npm test`. The regression suite covers Markdown table parsing, ASCII cell wrapping and alignment, and routing tables through the code-block insertion path. No dependency installation is needed to run it.
 
 ## Contributing
 

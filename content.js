@@ -81,24 +81,23 @@ async function parseMarkdownContent(content) {
                 continue;
             }
 
-            // Handle Tables (convert to regular content for now, as not in required types)
-            if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
-                // Skip table separator line
-                if (line.trim().match(/^\|[\s\-:|]+\|$/)) {
+            // A header and delimiter row identify a table, not a pipe alone.
+            if (isTableStart(lines, i)) {
+                const headers = splitTableRow(line).map(cleanTableCell);
+                const rows = [];
+                i += 2;
+                while (i < lines.length && lines[i].trim() &&
+                    (splitTableRow(lines[i]).length > 1 || /\|\s*$/.test(lines[i])) &&
+                    !lines[i].trim().startsWith('```') &&
+                    !lines[i].trim().match(/^#{1,6}\s+/)) {
+                    rows.push(splitTableRow(lines[i]).map(cleanTableCell));
                     i++;
-                    continue;
                 }
-
-                // Parse table row as regular content
-                const cells = line.trim().slice(1, -1).split('|').map(cell => removeInlineFormatting(cell.trim()));
-                const tableContent = cells.join(' | ');
-
-                sections.push({
-                    type: 'subheader', // Using link type as fallback for table content
-                    content: [tableContent],
-                    level: 2
-                });
-                i++;
+                // Keep surplus cells too, rather than silently discarding content.
+                const width = rows.reduce((max, row) => Math.max(max, row.length), headers.length);
+                while (headers.length < width) headers.push(`Column ${headers.length + 1}`);
+                for (const row of rows) while (row.length < width) row.push('');
+                sections.push({ type: 'table', headers, rows });
                 continue;
             }
 
@@ -214,7 +213,7 @@ async function parseMarkdownContent(content) {
                 lines[i].trim() !== '' &&
                 !lines[i].trim().match(/^#{1,6}\s+/) && // Not header
                 !lines[i].trim().startsWith('```') && // Not code block
-                !lines[i].trim().startsWith('|') && // Not table
+                !isTableStart(lines, i) && // Not table
                 !lines[i].trim().match(/^!\[.*\]\(.*\)/) && // Not image
                 !lines[i].trim().startsWith('>') && // Not blockquote
                 !lines[i].match(/^(\s*)([-*+]|\d+\.)\s+/) && // Not list
@@ -251,6 +250,46 @@ async function parseMarkdownContent(content) {
             level: 2
         }];
     }
+}
+
+function splitTableRow(line) {
+    // Some copied Markdown escapes the opening border but keeps cell separators.
+    const source = line.trim().replace(/^\\\|/, '|');
+    const cells = [];
+    let cell = '';
+    for (let i = 0; i < source.length; i++) {
+        if (source[i] === '\\' && i + 1 < source.length) {
+            cell += source[i] + source[++i];
+        } else if (source[i] === '|') {
+            cells.push(cell.trim());
+            cell = '';
+        } else {
+            cell += source[i];
+        }
+    }
+    cells.push(cell.trim());
+    if (source.startsWith('|')) cells.shift();
+    // An escaped final pipe belongs to a cell, not to the table border.
+    if (cells.length > 1 && cells[cells.length - 1] === '' && source.endsWith('|')) cells.pop();
+    return cells;
+}
+
+function isTableStart(lines, index) {
+    if (index + 1 >= lines.length) return false;
+    const header = splitTableRow(lines[index]);
+    const delimiter = splitTableRow(lines[index + 1]);
+    return header.length > 1 && header.length === delimiter.length &&
+        delimiter.every(cell => /^:?-{3,}:?$/.test(cell));
+}
+
+function cleanTableCell(cell) {
+    let text = cell.replace(/\\([\\|*_`~\[\]])/g, '$1').replace(/<br\s*\/?\s*>/gi, '\n');
+    let previous;
+    do {
+        previous = text;
+        text = removeInlineFormatting(text);
+    } while (text !== previous);
+    return text;
 }
 
 // Helper function to remove inline formatting and convert to plain text
@@ -309,6 +348,9 @@ async function insertMarkdownContent(content) {
                 break;
             case 'code_block':
                 await insertCodeBlock(section);
+                break;
+            case 'table':
+                await insertCodeBlock({ content: formatAsciiTable(section).split('\n') });
                 break;
             case 'link':
                 await insertLink(section);
