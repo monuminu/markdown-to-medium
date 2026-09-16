@@ -113,20 +113,26 @@ document.addEventListener('DOMContentLoaded', function() {
             //    return;
             //}
 
-            window.close();
+            if (!currentUrl || new URL(currentUrl).hostname !== 'medium.com') {
+                showStatus('Open a Medium draft before converting.', 'error');
+                return;
+            }
+            convertBtn.disabled = true;
+            showStatus('Inserting formatted content...', 'info');
 
             // Send message to content script
             chrome.tabs.sendMessage(tabs[0].id, {
                 action: 'insertContent',
                 content: markdownContent,
             }, (response) => {
+                convertBtn.disabled = false;
                 if (chrome.runtime.lastError) {
                     showStatus('Cannot connect to Medium page. Please refresh the page and try again.', 'error');
                     return;
                 }
 
                 if (response && response.success) {
-                    showStatus('✅ Content inserted into Medium editor!', 'success');
+                    showStatus(response.message, 'success');
                 } else {
                     const errorMsg = response ? response.message : 'Failed to insert content';
                     showStatus(errorMsg, 'error');
@@ -159,4 +165,3 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize
     showStatus('Ready! Upload a markdown file to get started.', 'info');
 });
-
