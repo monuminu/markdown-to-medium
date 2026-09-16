@@ -124,6 +124,7 @@ document.addEventListener('DOMContentLoaded', function() {
             chrome.tabs.sendMessage(tabs[0].id, {
                 action: 'insertContent',
                 content: markdownContent,
+                useFirstLineAsTitle: document.getElementById('useFirstLineAsTitle').checked,
             }, (response) => {
                 convertBtn.disabled = false;
                 if (chrome.runtime.lastError) {

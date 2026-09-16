@@ -1,6 +1,6 @@
 {
   "name": "markdown-to-medium",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A Chrome extension that converts markdown files to Medium.com articles, specifically designed for the **Medium New Story publication** at https://medium.com/new-story",
   "main": "content.js",
   "scripts": {

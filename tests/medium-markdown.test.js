@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { renderMediumMarkdown } = require('../medium-markdown');
+const { renderMediumMarkdown, prepareMediumArticle } = require('../medium-markdown');
 const image = 'https://image-backends.politesky-374bbcb3.eastus.azurecontainerapps.io/image/results/generated_image_20260914_040453_599_qauto_s1536x1024_bopaque.png';
 const link = 'https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/autopilot-overview';
 
@@ -89,4 +89,25 @@ test('retains plain pipe text and headings outside tables', () => {
     assert.ok(html.includes('<h1>Heading</h1>'));
     assert.ok(html.includes('<p>| Just ordinary text |</p>'));
     assert.ok(html.includes('<li>Second</li>'));
+});
+
+test('extracts the first nonempty line as the title without duplicating it in the body', () => {
+    const article = prepareMediumArticle('\ufeff\r\n# **My article** &amp; AI\r\n\r\nBody text.');
+    assert.equal(article.title, 'My article & AI');
+    assert.equal(article.body.html, '<p>Body text.</p>\n');
+    assert.ok(!article.body.html.includes('My article'));
+});
+
+test('accepts a plain first line, title-only input, and links in the title', () => {
+    assert.equal(prepareMediumArticle('Plain title\nBody').title, 'Plain title');
+    assert.equal(prepareMediumArticle('Only a title').body.html, '');
+    assert.equal(prepareMediumArticle('# [A title](https://example.com)\nBody').title, 'A title');
+    assert.throws(() => prepareMediumArticle(' \n\n'), /title|empty/i);
+});
+
+
+test('does not insert a Setext title underline into the body', () => {
+    const article = prepareMediumArticle('Story title\n===========\n\nBody');
+    assert.equal(article.title, 'Story title');
+    assert.equal(article.body.html, '<p>Body</p>\n');
 });

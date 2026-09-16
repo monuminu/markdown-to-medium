@@ -2,7 +2,7 @@
     if (typeof module !== 'undefined' && module.exports) {
         module.exports = factory(require('./vendor/markdown-it.min.js'), require('./ascii-table.js').formatAsciiTable);
     } else {
-        root.renderMediumMarkdown = factory(root.markdownit, root.formatAsciiTable).renderMediumMarkdown;
+        Object.assign(root, factory(root.markdownit, root.formatAsciiTable));
     }
 })(globalThis, function (markdownIt, formatTable) {
     const md = markdownIt({ html: false, linkify: true, breaks: false, typographer: false });
@@ -82,5 +82,17 @@
         return { html, text: String(source) };
     }
 
-    return { renderMediumMarkdown };
+    function prepareMediumArticle(source) {
+        const lines = String(source).replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n').split('\n');
+        while (lines.length && !lines[0].trim()) lines.shift();
+        if (!lines.length) throw new Error('The Markdown file is empty; add a title on the first line.');
+        const firstLine = lines.shift().trim().replace(/^#{1,6}\s+/, '').replace(/\s+#+\s*$/, '');
+        const title = plainCell(md.parseInline(firstLine, {})[0]).trim();
+        if (!title) throw new Error('The first line must contain a title.');
+        // A Setext underline belongs to the title, not the story body.
+        if (lines.length && /^\s{0,3}(?:=+|-+)\s*$/.test(lines[0])) lines.shift();
+        return { title, body: renderMediumMarkdown(lines.join('\n')) };
+    }
+
+    return { renderMediumMarkdown, prepareMediumArticle };
 });
