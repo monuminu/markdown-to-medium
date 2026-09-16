@@ -1,6 +1,8 @@
 # markdown-to-medium
 A Chrome extension that converts markdown files to Medium.com articles with intelligent parsing and direct content injection.
 
+This fork is maintained under [monuminu/markdown-to-medium](https://github.com/monuminu/markdown-to-medium), based on the original project by [Jayesh Padhiar](https://github.com/JayeshPadhiar/markdown-to-medium). The original MIT license and copyright notice are retained.
+
 ## Installation
 
 ### For Development:
@@ -11,7 +13,7 @@ A Chrome extension that converts markdown files to Medium.com articles with inte
 5. The extension should now appear in your Chrome toolbar
 
 ### For Users:
-1. Download the latest release
+1. Download `markdown-to-medium-v1.0.1.zip` from the [latest release](https://github.com/monuminu/markdown-to-medium/releases/latest)
 2. Extract the files
 3. Open Chrome and go to `chrome://extensions/`
 4. Enable "Developer mode" in the top right corner

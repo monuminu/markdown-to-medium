@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Markdown to Medium",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A Chrome extension that converts markdown files to Medium.com articles",
   "permissions": [
     "storage",
@@ -13,8 +13,12 @@
   ],
   "content_scripts": [
     {
-      "matches": ["https://medium.com/*"],
-      "js": ["content.js"],
+      "matches": [
+        "https://medium.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_idle"
     }
   ],
@@ -23,8 +27,8 @@
     "default_title": "Markdown to Medium"
   },
   "icons": {
-    "16": "icons/icon16.svg",
-    "48": "icons/icon48.svg",
-    "128": "icons/icon128.svg"
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
   }
 }
