@@ -2,7 +2,7 @@
 
 A Chrome extension that inserts Markdown into a Medium draft, preserving images, clickable hyperlinks, headings, emphasis, lists, quotes, and code. Markdown tables become editable ASCII grids in code blocks.
 
-This fork is maintained under [monuminu/markdown-to-medium](https://github.com/monuminu/markdown-to-medium), based on the original project by [Jayesh Padhiar](https://github.com/JayeshPadhiar/markdown-to-medium). The original MIT license and copyright notice are retained.
+Maintained by [monuminu](https://github.com/monuminu).
 
 ## Install
 
