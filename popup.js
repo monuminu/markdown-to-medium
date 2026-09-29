@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     const uploadBtn = document.getElementById('uploadBtn');
     const convertBtn = document.getElementById('convertBtn');
-    const repairTocBtn = document.getElementById('repairTocBtn');
     const preview = document.getElementById('preview');
     const status = document.getElementById('status');
     
@@ -15,7 +14,6 @@ document.addEventListener('DOMContentLoaded', function() {
     convertBtn.addEventListener('click', function() {
         convertToMedium();
     });
-    repairTocBtn.addEventListener('click', () => convertToMedium(true));
 
     // Upload markdown file function
     function uploadMarkdownFile() {
@@ -89,11 +87,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Convert to Medium function
-    function convertToMedium(repairOnly = false) {
+    function convertToMedium() {
 
 
 
-        if (!repairOnly && !markdownContent) {
+        if (!markdownContent) {
             showStatus('Please upload a markdown file first', 'error');
             return;
         }
@@ -120,17 +118,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             convertBtn.disabled = true;
-            repairTocBtn.disabled = true;
-            showStatus(repairOnly ? 'Repairing TOC links...' : 'Inserting formatted content...', 'info');
+            showStatus('Inserting formatted content and linking the TOC...', 'info');
 
             // Send message to content script
             chrome.tabs.sendMessage(tabs[0].id, {
-                action: repairOnly ? 'repairToc' : 'insertContent',
+                action: 'insertContent',
                 content: markdownContent,
                 useFirstLineAsTitle: document.getElementById('useFirstLineAsTitle').checked,
             }, (response) => {
                 convertBtn.disabled = false;
-                repairTocBtn.disabled = false;
                 if (chrome.runtime.lastError) {
                     showStatus('Cannot connect to Medium page. Please refresh the page and try again.', 'error');
                     return;

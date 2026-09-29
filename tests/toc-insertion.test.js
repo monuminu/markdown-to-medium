@@ -58,24 +58,24 @@ test('import resolves TOC links after Medium assigns heading identifiers', async
     w.close();
 });
 
-test('repair action fixes an existing draft without inserting or changing formatted text', async () => {
+test('automatic TOC linking preserves inline formatting and body content', async () => {
     const { w, editor, send } = draft();
-    editor.innerHTML += '<p><a href="#overview"><strong>Overview</strong></a></p><h3 name="f123">Overview</h3><p>Existing body</p>';
-    const before = editor.textContent;
-    const response = await send({ action: 'repairToc' });
+    const response = await send({ action: 'insertContent', useFirstLineAsTitle: false,
+        content: '- [**Overview**](#overview)\n\n## Overview\n\nBody content' });
     assert.equal(response.success, true);
-    assert.equal(editor.querySelector('a').getAttribute('href'), '#f123');
-    assert.equal(editor.textContent, before);
+    assert.equal(editor.querySelector('a').getAttribute('href'), '#m1000');
     assert.equal(editor.querySelector('a strong').textContent, 'Overview');
+    assert.ok(editor.textContent.includes('Body content'));
     w.close();
 });
 
-test('native link edit failure is reported rather than falsely claiming repair', async () => {
+test('native link edit failure during import is reported rather than falsely claiming success', async () => {
     const { w, editor, send } = draft({ acceptLinks: false });
-    editor.innerHTML += '<a href="#intro">Intro</a><h3 name="f123">Intro</h3>';
-    const response = await send({ action: 'repairToc' });
+    const response = await send({ action: 'insertContent', useFirstLineAsTitle: false,
+        content: '- [Intro](#intro)\n\n## Intro' });
     assert.equal(response.warning, true);
     assert.equal(editor.querySelector('a').getAttribute('href'), '#intro');
+    assert.equal(editor.querySelectorAll('h2').length, 1);
     w.close();
 });
 
@@ -107,26 +107,5 @@ test('unresolved TOC targets report partial completion without reinserting the a
     assert.equal(response.warning, true);
     assert.ok(response.message.includes('#missing'));
     assert.equal(editor.querySelectorAll('h2').length, 1);
-    w.close();
-});
-
-test('repair button works without a Markdown upload and displays unresolved-link warnings', async () => {
-    const html = fs.readFileSync(path.join(__dirname, '../popup.html'), 'utf8');
-    const dom = new JSDOM(html, { runScripts: 'outside-only' });
-    const w = dom.window;
-    let action;
-    w.chrome = { runtime: {}, tabs: {
-        query(_, cb) { cb([{ id: 7, url: 'https://medium.com/p/abc/edit' }]); },
-        sendMessage(id, request, cb) {
-            action = request.action;
-            cb({ success: true, warning: true, message: 'Unresolved link: #missing' });
-        }
-    } };
-    w.eval(fs.readFileSync(path.join(__dirname, '../popup.js'), 'utf8'));
-    await new Promise(resolve => w.document.addEventListener('DOMContentLoaded', resolve));
-    w.document.querySelector('#repairTocBtn').click();
-    assert.equal(action, 'repairToc');
-    assert.equal(w.document.querySelector('#status').className, 'status warning');
-    assert.equal(w.document.querySelector('#repairTocBtn').disabled, false);
     w.close();
 });

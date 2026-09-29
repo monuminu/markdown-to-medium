@@ -1,7 +1,7 @@
 let insertionInProgress = false;
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (!['insertContent', 'repairToc'].includes(request.action)) {
+    if (request.action !== 'insertContent') {
         sendResponse({ success: false, message: 'Unknown action.' });
         return false;
     }
@@ -10,27 +10,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return false;
     }
     insertionInProgress = true;
-    const repairOnly = request.action === 'repairToc';
-    const operation = repairOnly ? repairDraftToc() :
-        pasteMarkdownIntoMedium(request.content, { useFirstLineAsTitle: request.useFirstLineAsTitle !== false });
-    operation
+    pasteMarkdownIntoMedium(request.content, { useFirstLineAsTitle: request.useFirstLineAsTitle !== false })
         .then(result => {
             const unresolved = result?.unresolved || [];
-            const prefix = repairOnly ? `${result.repaired} TOC link(s) repaired.` : 'Content inserted.';
+            const prefix = 'Content inserted.';
             sendResponse({ success: true, warning: unresolved.length > 0,
-                message: unresolved.length ? `${prefix} Could not resolve ${unresolved.length} link(s): ${unresolved.slice(0, 5).join(', ')}. Check the headings or try Repair TOC links after the draft finishes loading.` :
+                message: unresolved.length ? `${prefix} Could not resolve ${unresolved.length} link(s): ${unresolved.slice(0, 5).join(', ')}. Check that each TOC fragment matches a heading in the Markdown file. Review the inserted draft before importing again.` :
                     `${prefix} Review the draft, allow autosave to finish, and test TOC links in preview.` });
         })
         .catch(error => sendResponse({ success: false, message: error.message }))
         .finally(() => { insertionInProgress = false; });
     return true;
 });
-
-async function repairDraftToc() {
-    const editor = document.querySelector('article [contenteditable="true"]');
-    if (!editor) throw new Error('Open the story in Medium’s editor before repairing TOC links.');
-    return repairMediumToc(editor);
-}
 
 async function pasteMarkdownIntoMedium(markdown, { useFirstLineAsTitle = true } = {}) {
     const editor = document.querySelector('article [contenteditable="true"]');
@@ -110,7 +101,7 @@ async function pasteMarkdownIntoMedium(markdown, { useFirstLineAsTitle = true } 
                 if (headings.length >= expected && headings.every(h => h.getAttribute('name') || h.id) && signature === previous) break;
                 previous = signature;
             }
-            return repairMediumToc(editor, scope);
+            return resolveMediumToc(editor, scope);
         }
     }
     throw new Error('Medium did not accept the paste. Refresh the draft, click an empty body paragraph, and try again.');

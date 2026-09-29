@@ -36,7 +36,7 @@
         return { updates, unresolved };
     }
 
-    async function repairMediumToc(editor, { headingsBefore = new Set(), linksBefore = new Set() } = {}) {
+    async function resolveMediumToc(editor, { headingsBefore = new Set(), linksBefore = new Set() } = {}) {
         const headings = Array.from(editor.querySelectorAll('h1, h2, h3, h4, h5, h6'))
             .filter(node => !node.matches('.graf--title, [data-placeholder="Title"]') && !headingsBefore.has(node));
         const links = Array.from(editor.querySelectorAll('a[href]')).filter(node => !linksBefore.has(node));
@@ -71,5 +71,5 @@
         return { repaired, unresolved: [...new Set(plan.unresolved)] };
     }
 
-    return { planMediumToc, repairMediumToc };
+    return { planMediumToc, resolveMediumToc };
 });

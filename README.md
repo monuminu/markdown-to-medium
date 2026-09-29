@@ -6,7 +6,7 @@ Maintained by [monuminu](https://github.com/monuminu).
 
 ## Install
 
-1. Download `markdown-to-medium-v1.1.2.zip` from the [latest release](https://github.com/monuminu/markdown-to-medium/releases/latest).
+1. Download `markdown-to-medium-v1.1.3.zip` from the [latest release](https://github.com/monuminu/markdown-to-medium/releases/latest).
 2. Extract the ZIP into a folder you will keep on your computer.
 3. Open `chrome://extensions/` and enable **Developer mode**.
 4. Click **Load unpacked** and choose the extracted folder containing `manifest.json`.
@@ -59,9 +59,9 @@ Your content.
 
 Medium assigns its own identifiers to headings. After importing, the extension replaces matching Markdown fragments with the actual Medium anchors. Repeated headings use `#overview`, `#overview-1`, and so on. Ordinary external links are left unchanged. Use standard lowercase heading fragments with spaces replaced by hyphens and punctuation removed. Custom HTML anchors and nonstandard slug conventions are not inferred; unmatched links are reported.
 
-**For an existing draft:** open it in Medium’s editor, open the extension, and click **Repair TOC links in this draft**. No file upload or reimport is needed. It updates links without adding article content. If you have repeated headings, review the target of each entry.
+TOC links are connected automatically when you click **Convert to Medium.com**. No separate repair step is needed. Include the TOC links in your Markdown file; the extension does not generate a TOC from scratch.
 
-Allow Medium to autosave, then reload and test the links in the story preview or published reader view. Clicking a link while editing may open Medium’s link toolbar rather than navigate. If a heading is deleted and recreated, run the repair again for any links still using Markdown fragments; links already pointing to a removed Medium ID need manual relinking. Repairs require headings and links to remain in the draft; they do not generate a TOC from scratch.
+Allow Medium to autosave, then test the links in the story preview or published reader view. Clicking a link while editing may open Medium’s link toolbar rather than navigate.
 
 ## Tables
 
@@ -95,7 +95,7 @@ The extension checks whether the editor changes before reporting success. It doe
 
 The release package runs without a build step or external script downloads. With Node.js 20 or newer, run `npm ci --ignore-scripts` followed by `npm test`. Tests use the bundled parser and jsdom for DOM and selection behavior; browser editing commands and Medium’s paste importer are simulated. jsdom is only a development dependency and is not included in the extension ZIP.
 
-Tests cover TOC mapping and repair, title extraction and insertion, images, hyperlinks, Markdown escaping, ASCII tables, the HTML paste payload, insertion failures, and protection against replacing selected text. Browser integration remains dependent on Medium's editor behavior.
+Tests cover automatic TOC mapping, title extraction and insertion, images, hyperlinks, Markdown escaping, ASCII tables, the HTML paste payload, insertion failures, and protection against replacing selected text. Browser integration remains dependent on Medium's editor behavior.
 
 ## License
 
