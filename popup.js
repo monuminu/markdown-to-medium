@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const uploadBtn = document.getElementById('uploadBtn');
     const convertBtn = document.getElementById('convertBtn');
+    const repairTocBtn = document.getElementById('repairTocBtn');
     const preview = document.getElementById('preview');
     const status = document.getElementById('status');
     
@@ -14,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
     convertBtn.addEventListener('click', function() {
         convertToMedium();
     });
+    repairTocBtn.addEventListener('click', () => convertToMedium(true));
 
     // Upload markdown file function
     function uploadMarkdownFile() {
@@ -87,11 +89,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Convert to Medium function
-    function convertToMedium() {
+    function convertToMedium(repairOnly = false) {
 
 
 
-        if (!markdownContent) {
+        if (!repairOnly && !markdownContent) {
             showStatus('Please upload a markdown file first', 'error');
             return;
         }
@@ -118,22 +120,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             convertBtn.disabled = true;
-            showStatus('Inserting formatted content...', 'info');
+            repairTocBtn.disabled = true;
+            showStatus(repairOnly ? 'Repairing TOC links...' : 'Inserting formatted content...', 'info');
 
             // Send message to content script
             chrome.tabs.sendMessage(tabs[0].id, {
-                action: 'insertContent',
+                action: repairOnly ? 'repairToc' : 'insertContent',
                 content: markdownContent,
                 useFirstLineAsTitle: document.getElementById('useFirstLineAsTitle').checked,
             }, (response) => {
                 convertBtn.disabled = false;
+                repairTocBtn.disabled = false;
                 if (chrome.runtime.lastError) {
                     showStatus('Cannot connect to Medium page. Please refresh the page and try again.', 'error');
                     return;
                 }
 
                 if (response && response.success) {
-                    showStatus(response.message, 'success');
+                    showStatus(response.message, response.warning ? 'warning' : 'success');
                 } else {
                     const errorMsg = response ? response.message : 'Failed to insert content';
                     showStatus(errorMsg, 'error');

@@ -1,7 +1,7 @@
 let insertionInProgress = false;
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action !== 'insertContent') {
+    if (!['insertContent', 'repairToc'].includes(request.action)) {
         sendResponse({ success: false, message: 'Unknown action.' });
         return false;
     }
@@ -10,12 +10,27 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return false;
     }
     insertionInProgress = true;
-    pasteMarkdownIntoMedium(request.content, { useFirstLineAsTitle: request.useFirstLineAsTitle !== false })
-        .then(() => sendResponse({ success: true, message: 'Content inserted. Review the draft and let images finish loading.' }))
+    const repairOnly = request.action === 'repairToc';
+    const operation = repairOnly ? repairDraftToc() :
+        pasteMarkdownIntoMedium(request.content, { useFirstLineAsTitle: request.useFirstLineAsTitle !== false });
+    operation
+        .then(result => {
+            const unresolved = result?.unresolved || [];
+            const prefix = repairOnly ? `${result.repaired} TOC link(s) repaired.` : 'Content inserted.';
+            sendResponse({ success: true, warning: unresolved.length > 0,
+                message: unresolved.length ? `${prefix} Could not resolve ${unresolved.length} link(s): ${unresolved.slice(0, 5).join(', ')}. Check the headings or try Repair TOC links after the draft finishes loading.` :
+                    `${prefix} Review the draft, allow autosave to finish, and test TOC links in preview.` });
+        })
         .catch(error => sendResponse({ success: false, message: error.message }))
         .finally(() => { insertionInProgress = false; });
     return true;
 });
+
+async function repairDraftToc() {
+    const editor = document.querySelector('article [contenteditable="true"]');
+    if (!editor) throw new Error('Open the story in Medium’s editor before repairing TOC links.');
+    return repairMediumToc(editor);
+}
 
 async function pasteMarkdownIntoMedium(markdown, { useFirstLineAsTitle = true } = {}) {
     const editor = document.querySelector('article [contenteditable="true"]');
@@ -65,6 +80,11 @@ async function pasteMarkdownIntoMedium(markdown, { useFirstLineAsTitle = true } 
         if (!rendered.html.trim()) throw new Error('The Markdown file contains no content to insert.');
     }
     const before = editor.innerHTML;
+    const hasToc = rendered.html.includes('href="#');
+    const scope = hasToc ? {
+        headingsBefore: new Set(editor.querySelectorAll('h1, h2, h3, h4, h5, h6')),
+        linksBefore: new Set(editor.querySelectorAll('a[href]'))
+    } : null;
     const clipboard = new DataTransfer();
     clipboard.setData('text/html', rendered.html);
     clipboard.setData('text/plain', rendered.text);
@@ -76,7 +96,22 @@ async function pasteMarkdownIntoMedium(markdown, { useFirstLineAsTitle = true } 
     // Never retry automatically: a delayed first paste could otherwise duplicate the article.
     for (let attempt = 0; attempt < 30; attempt++) {
         await new Promise(resolve => setTimeout(resolve, 100));
-        if (editor.innerHTML !== before) return;
+        if (editor.innerHTML !== before) {
+            if (!hasToc) return;
+            // Medium assigns paragraph names after importing. Wait for the headings
+            // and their IDs before resolving fragments; never paste the body again.
+            const expected = (rendered.html.match(/<h[1-6](?:\s|>)/g) || []).length;
+            let previous = '';
+            for (let ready = 0; ready < 30; ready++) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                const headings = Array.from(editor.querySelectorAll('h1, h2, h3, h4, h5, h6'))
+                    .filter(node => !scope.headingsBefore.has(node));
+                const signature = headings.map(h => `${h.textContent}:${h.getAttribute('name') || h.id}`).join('|');
+                if (headings.length >= expected && headings.every(h => h.getAttribute('name') || h.id) && signature === previous) break;
+                previous = signature;
+            }
+            return repairMediumToc(editor, scope);
+        }
     }
     throw new Error('Medium did not accept the paste. Refresh the draft, click an empty body paragraph, and try again.');
 }
